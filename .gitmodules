@@ -1,0 +1,12 @@
+[submodule "gisela/third_party/gtest"]
+	path = gisela/third_party/gtest
+	url = https://github.com/google/googletest.git
+[submodule "gisela/third_party/gflags"]
+	path = gisela/third_party/gflags
+	url = https://github.com/gflags/gflags
+[submodule "gisela/third_party/OpenCL-CLHPP"]
+	path = gisela/third_party/OpenCL-CLHPP
+	url = https://github.com/KhronosGroup/OpenCL-CLHPP.git
+[submodule "gisela/third_party/OpenCL-Headers"]
+	path = gisela/third_party/OpenCL-Headers
+	url = https://github.com/KhronosGroup/OpenCL-Headers.git
