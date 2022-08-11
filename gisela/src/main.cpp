@@ -6,16 +6,19 @@
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
+#include <map>
+#include <string>
 #include <vector>
 
-const char* helloStr = "__kernel void "
-                       "hello(void) "
-                       "{ "
-                       "  printf(\"hello world\\n\");"
-                       "} ";
+namespace gisela {
 
-int main(void) {
-    cl_int                    err = CL_SUCCESS;
+extern const std::map<std::string, std::vector<unsigned char>> cl_src;
+
+}
+
+int main() {
+    cl_int err = CL_SUCCESS;
+
     std::vector<cl::Platform> platforms;
     cl::Platform::get(&platforms);
     if (platforms.size() == 0) {
@@ -28,7 +31,15 @@ int main(void) {
 
     std::vector<cl::Device> devices = context.getInfo<CL_CONTEXT_DEVICES>();
 
-    cl::Program program_ = cl::Program(context, std::string(helloStr));
+    std::string program_name = "hello";
+
+    std::string helloStr(gisela::cl_src.find(program_name)->second.begin(),
+                         gisela::cl_src.find(program_name)->second.end());
+
+    // std::string helloStr(cl_src.find(program_name)->second.begin(),
+    //                      cl_src.find(program_name)->second.end());
+    std::cout << helloStr << std::endl;
+    cl::Program program_ = cl::Program(context, helloStr);
     program_.build(devices);
 
     cl::Kernel kernel(program_, "hello", &err);
@@ -42,6 +53,41 @@ int main(void) {
 
     return EXIT_SUCCESS;
 }
+
+// const char* helloStr = "__kernel void "
+//                        "hello(void) "
+//                        "{ "
+//                        "  printf(\"hello world\\n\");"
+//                        "} ";
+
+// int main(void) {
+//     cl_int                    err = CL_SUCCESS;
+//     std::vector<cl::Platform> platforms;
+//     cl::Platform::get(&platforms);
+//     if (platforms.size() == 0) {
+//         std::cout << "Platform size 0\n";
+//         return -1;
+//     }
+//     cl_context_properties properties[] = {
+//         CL_CONTEXT_PLATFORM, (cl_context_properties)(platforms[0])(), 0};
+//     cl::Context context(CL_DEVICE_TYPE_GPU, properties);
+
+//     std::vector<cl::Device> devices = context.getInfo<CL_CONTEXT_DEVICES>();
+
+//     cl::Program program_ = cl::Program(context, std::string(helloStr));
+//     program_.build(devices);
+
+//     cl::Kernel kernel(program_, "hello", &err);
+
+//     cl::Event        event;
+//     cl::CommandQueue queue(context, devices[0], 0, &err);
+//     queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(2, 2),
+//                                cl::NullRange, NULL, &event);
+
+//     event.wait();
+
+//     return EXIT_SUCCESS;
+// }
 
 // #include <algorithm>
 // #include <cstdlib>

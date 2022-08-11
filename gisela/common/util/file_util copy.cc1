@@ -1,0 +1,333 @@
+
+
+// Copyright 2020 Bytedance Inc. All Rights Reserved.
+// Author: tiger@bytedance.com (tiger)
+
+#include "petrel/common/utils/file_util.h"
+
+#include <dirent.h>
+#include <stdio.h>
+#include <string.h>
+#include <sys/stat.h>
+
+#include <algorithm>
+#include <ctime>
+#include <fstream>
+#include <sstream>
+
+#include "petrel/common/utils/logging.h"
+#include "petrel/common/utils/memory.h"
+
+using std::map;
+using std::string;
+using std::vector;
+
+namespace lab {
+namespace speech {
+namespace petrel {
+namespace utils {
+
+bool FileUtil::GetStringText(const string& file_path, string* text) {
+  std::ifstream fs(file_path);
+  text->clear();
+  if (fs.good()) {
+    std::string tmp;
+    while (fs.good()) {
+      std::getline(fs, tmp);
+      text->append(tmp);
+      text->append("\n");
+    }
+    return true;
+  } else {
+    return false;
+  }
+}
+
+bool FileUtil::GetRawData(const string& file_path, char** data,
+                          uint64_t* length) {
+  std::ifstream fs(file_path);
+  if (fs.good()) {
+    fs.seekg(0, fs.end);
+    size_t file_size = fs.tellg();
+    fs.seekg(0, fs.beg);
+    *data = reinterpret_cast<char*>(AlignedAlloc(file_size + 1));
+    fs.read(*data, file_size);
+    *length = file_size;
+    return true;
+  } else {
+    return false;
+  }
+}
+
+std::uint64_t FileUtil::GetModifyTime(const std::string& path) {
+  if (!FileExists(path)) {
+    return -1;
+  }
+  struct stat result;
+  if (stat(path.c_str(), &result) == 0) {
+    std::uint64_t time = result.st_mtime;
+    return time;
+  } else {
+    return -1;
+  }
+}
+
+bool FileUtil::IsDir(const std::string& path) {
+  if (!FileExists(path)) {
+    return false;
+  }
+  struct stat statbuf;
+  lstat(path.c_str(), &statbuf);
+  return S_ISDIR(statbuf.st_mode);
+}  // IsDir
+
+bool FileUtil::ListFile(const std::string& path,
+                        std::vector<std::string>* files) {
+  DIR* dp = nullptr;
+  struct dirent* entry = nullptr;
+  if ((dp = opendir(path.c_str())) == nullptr) {
+    PETREL_LOG_ERROR("Can not open dir[{}]!", path);
+    return false;
+  }
+  while ((entry = readdir(dp)) != nullptr) {
+    std::string filename = path;
+    filename.append("/").append(entry->d_name);
+    if (IsDir(filename)) {
+      continue;
+    }
+    files->push_back(filename);
+  }
+  closedir(dp);
+  return true;
+}  // ListFile
+bool FileUtil::Read(const std::string& path, std::string* output) {
+  if (!FileExists(path)) {
+    PETREL_LOG_INFO("{} not exists", path);
+    return false;
+  }
+  FILE* f = fopen(path.c_str(), "rb");
+  if (nullptr == f) {
+    PETREL_LOG_ERROR("Fail to open file: {}", path);
+    return false;
+  }
+
+  fseek(f, 0, SEEK_END);
+  size_t len = ftell(f);
+  rewind(f);
+  char* buffer = new (std::nothrow) char[len];
+  if (nullptr == buffer) {
+    PETREL_LOG_DEBUG("Fail to allocate bytes buffer: {}", len);
+    fclose(f);
+    return false;
+  }
+  fread(buffer, 1, len, f);
+  *output = std::string(buffer, len);
+  fclose(f);
+  delete[] buffer;
+  return true;
+}  // Read
+
+bool FileUtil::Read(const std::string& path, std::vector<std::string>* lines) {
+  std::ifstream in(path.c_str());
+  std::string line;
+  if (!in) {
+    PETREL_LOG_ERROR("{} not exists!!!", path);
+    return false;
+  }
+  while (getline(in, line)) {
+    lines->push_back(line);
+  }
+  in.close();
+  return true;
+}  // Read
+
+bool FileUtil::Write(const string& path, const string& content,
+                     const bool append) {
+  std::ofstream file(path.c_str(), append
+                                       ? std::ofstream::out | std::ofstream::app
+                                       : std::ofstream::out);
+  if (!file) {
+    PETREL_LOG_ERROR("Fail to create local file: {}", path);
+    return false;
+  }
+  file.write(content.c_str(), content.length());
+  file.flush();
+  file.close();
+  return true;
+}  // Write
+
+bool FileUtil::FileExists(const std::string& filename) {
+  struct stat buffer;
+  return (stat(filename.c_str(), &buffer) == 0);
+}
+
+bool FileUtil::ReadFileToString(const string& name, string* output) {
+  char buffer[BUFSIZ];
+  FILE* file = fopen(name.c_str(), "rb");
+  if (file == nullptr) {
+    return false;
+  }
+
+  while (true) {
+    size_t n = fread(buffer, 1, sizeof(buffer), file);
+    if (n <= 0) {
+      break;
+    }
+    output->append(buffer, n);
+  }
+
+  int error = ferror(file);
+  if (fclose(file) != 0) {
+    return false;
+  }
+  return error == 0;
+}
+
+}  // namespace utils
+}  // namespace petrel
+}  // namespace speech
+}  // namespace lab
+
+
+
+
+
+
+
+
+
+// #%%
+// import struct
+// from this import d
+
+
+// # %%
+// 打开二进制文件后，将数据读取到字符串d_str
+//         d_str = f.read()
+// 然后关闭文件
+//         f.cloae()
+// 获取字符串长度
+//         d_len = len(d_str)
+// 对于float类型，一般占用4字节，因此数组长度应为d_len/4
+// 然后使用struct将d_str转换为浮点数tuple数组
+//         import struct
+//         data = struct.unpack(str(d_len/4)+'f',d_str)
+// 有时还需考虑字节顺序，如为big-endian，则以上语句改为
+//         data = struct.unpack('>'+str(d_len/4)+'f',d_str)
+// ————————————————
+// 版权声明：本文为CSDN博主「hcwang23」的原创文章，遵循CC 4.0 BY-SA版权协议，转载请附上原文出处链接及本声明。
+// 原文链接：https://blog.csdn.net/hcwang23/article/details/52193656
+
+// #%%
+// file_path = "hello.bin"
+// with open(file_path, "rb") as f:
+//     d_str = f.read()
+
+
+
+// d_len = int(len(d_str) / 4)
+
+// # f = d_str[0:4]
+
+// # for i in range(d_len):
+// #     num = d_str[i: i + 4]
+
+
+// data = struct.unpack(str(d_len)+'f',d_str)
+
+
+// # %%
+
+// new_file = "hello_from_py.bin"
+// m = 10
+// arr = list(range(5))
+// arr = [(i + 3.14)/ 2 for i in arr ]
+
+
+// #%%
+// with open(new_file, "wb") as f:
+//     f.write(struct.pack("5f", *arr))
+
+
+
+
+// # %%
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include <fstream>
+#include <string>
+#include <iostream>
+#include <vector>
+#include <fstream>
+
+
+
+
+
+
+int main() {
+    int m = 10;
+    std::vector<float> data(m);
+
+    for (int i = 0; i < m; ++i) {
+        data[i]= i * 1.0f / (i + 1);
+    }
+
+    std::string file_path = "hello.bin";
+
+
+    std::ofstream out(file_path, std::ios::binary);
+    out.write(reinterpret_cast<const char*>(data.data()), sizeof(float) * data.size());
+
+    out.close();
+
+    std::ifstream in(file_path, std::ios::binary | std::ios::in);
+
+    float* tmp = (float*)malloc(sizeof(float) * data.size());
+
+    in.read((char*)tmp, sizeof(float) * data.size());
+
+    for (int i = 0; i < m; ++i) {
+        std::cout << tmp[i] << " " << data[i] << std::endl;
+    }
+    in.close();
+
+    free(tmp);
+
+    std::ifstream in1("hello_from_py.bin", std::ios::binary | std::ios::in);
+
+     tmp = (float*)malloc(sizeof(float) * 5);
+
+    in1.read((char*)tmp, sizeof(float) * 5);
+
+    for (int i = 0; i < 5; ++i) {
+        std::cout << tmp[i] << std::endl;
+    }
+    in1.close();
+
+    free(tmp);
+
+
+
+    return 0;
+}

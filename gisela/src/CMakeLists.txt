@@ -1,14 +1,26 @@
 
-set(SRC "main.cpp")
+set(SRC
+    ${CMAKE_CURRENT_LIST_DIR}/kernel/cl/cl_src.cc
+    main.cpp
+)
+
 set(target "demo_opencl")
 
 add_executable(${target})
 target_sources(${target} PRIVATE ${SRC})
 target_include_directories(${target} PUBLIC ${INC_DIR})
 
-# add_definitions(-DCL_TARGET_OPENCL_VERSION=200)
-# add_definitions(-DCL_HPP_TARGET_OPENCL_VERSION=200)
-# add_definitions(-DCL_HPP_MINIMUM_OPENCL_VERSION=200)
+add_definitions(-DCL_TARGET_OPENCL_VERSION=200)
+add_definitions(-DCL_HPP_TARGET_OPENCL_VERSION=200)
+add_definitions(-DCL_HPP_MINIMUM_OPENCL_VERSION=200)
+
+include(FindPythonInterp REQUIRED)
+
+add_custom_command(OUTPUT ${CMAKE_CURRENT_LIST_DIR}/kernel/cl/cl_src.cc
+    COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/kernel/cl/convert_cl.py)
+
+add_custom_target(ConvertCL DEPENDS ${CMAKE_CURRENT_LIST_DIR}/kernel/cl/cl_src.cc)
+
 find_package(OpenCL)
 
 if(OpenCL_FOUND)
