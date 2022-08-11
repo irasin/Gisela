@@ -24,15 +24,15 @@ else()
     add_definitions(-DUSE_CLHPP)
 
     # assert opencl in cuda lib
-    if(DEFINED ENV{CUDA_PATH})
-        message("CUDA_PATH: $ENV{CUDA_PATH}")
+    if(DEFINED ENV{CUDA_HOME})
+        message("CUDA_HOME: $ENV{CUDA_HOME}")
     else()
-        message(FATAL_ERROR "NOT DEFINED CUDA_PATH VARIABLES")
+        message(FATAL_ERROR "NOT DEFINED CUDA_HOME VARIABLES")
     endif()
 
     set(OPENCL_LIB
-        $ENV{CUDA_PATH}/lib/x64 # windows
-        $ENV{CUDA_PATH}/lib64 # linux
+        $ENV{CUDA_HOME}/lib/x64 # windows
+        $ENV{CUDA_HOME}/lib64 # linux
     )
 
     target_include_directories(${target} PRIVATE ${OPENCL_HEADER})
