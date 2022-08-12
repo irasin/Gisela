@@ -1,8 +1,8 @@
-#if defined(USE_CLHPP)
-#    include <CL/opencl.hpp>
-#else
-#    include <CL/cl.hpp>
-#endif
+// #if defined(USE_CLHPP)
+#include <CL/opencl.hpp>
+// #else
+// #    include <CL/cl.hpp>
+// #endif
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>

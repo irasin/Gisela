@@ -23,11 +23,12 @@ set(INC_DIR ${GISELA_ROOT_DIR}/include)
 set(TEST_DIR ${GISELA_ROOT_DIR}/test)
 set(CMAKE_DIR ${GISELA_ROOT_DIR}/cmake)
 set(THIRD_PARTY_DIR ${GISELA_ROOT_DIR}/third_party)
-include_directories(GISELA_ROOT_DIR)
-message(${GISELA_ROOT_DIR})
+
+include_directories(${GISELA_ROOT_DIR})
+include_directories(${INC_DIR})
 
 include(${CMAKE_DIR}/common.cmake)
+include(${CMAKE_DIR}/opencl.cmake)
 
 add_subdirectory(common)
-
 add_subdirectory(src)
